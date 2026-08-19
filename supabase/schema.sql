@@ -53,17 +53,17 @@ ALTER PUBLICATION supabase_realtime SET TABLE public.tables, public.menu_items, 
 
 -- 4. Seed Initial Sample Menu Data
 INSERT INTO public.menu_items (name, price, category, station) VALUES
-('Seekh Kabab Plate', 12.99, 'BBQ', 'BBQ'),
-('Chicken Tikka Boti', 14.50, 'BBQ', 'BBQ'),
-('Mutton Ribs BBQ', 18.99, 'BBQ', 'BBQ'),
-('Smash Cheeseburger', 9.99, 'Fast Food', 'Fast Food'),
-('Loaded Fries', 6.50, 'Fast Food', 'Fast Food'),
-('Crispy Chicken Wings', 8.99, 'Fast Food', 'Fast Food'),
-('Fresh Mango Lassi', 4.50, 'Drinks', 'Drinks'),
-('Mint Lemonade', 3.99, 'Drinks', 'Drinks'),
-('Karak Masala Chai', 2.99, 'Drinks', 'Drinks'),
-('Chicken Karahi Special', 16.99, 'Desi', 'Desi'),
-('Chicken Biryani', 11.99, 'Desi', 'Desi')
+('Seekh Kabab Plate', 1250.00, 'BBQ', 'BBQ'),
+('Chicken Tikka Boti', 1450.00, 'BBQ', 'BBQ'),
+('Mutton Ribs BBQ', 2200.00, 'BBQ', 'BBQ'),
+('Smash Cheeseburger', 950.00, 'Fast Food', 'Fast Food'),
+('Loaded Fries', 650.00, 'Fast Food', 'Fast Food'),
+('Crispy Chicken Wings', 850.00, 'Fast Food', 'Fast Food'),
+('Fresh Mango Lassi', 450.00, 'Drinks', 'Drinks'),
+('Mint Lemonade', 350.00, 'Drinks', 'Drinks'),
+('Karak Masala Chai', 250.00, 'Drinks', 'Drinks'),
+('Chicken Karahi Special', 1850.00, 'Desi', 'Desi'),
+('Chicken Biryani', 750.00, 'Desi', 'Desi')
 ON CONFLICT DO NOTHING;
 
 -- 5. Seed Default Tables (1 through 10)

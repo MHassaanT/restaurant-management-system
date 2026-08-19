@@ -206,7 +206,7 @@ function MenuContent() {
                   </div>
                   <h3 className="text-lg font-extrabold text-white">{item.name}</h3>
                   <p className="text-amber-400 font-black text-base">
-                    ${item.price.toFixed(2)}
+                    Rs. {item.price.toLocaleString()}
                   </p>
                 </div>
 
@@ -256,7 +256,7 @@ function MenuContent() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-amber-400 font-bold">
-                      ${(c.item.price * c.quantity).toFixed(2)}
+                      Rs. {(c.item.price * c.quantity).toLocaleString()}
                     </span>
                     <div className="flex items-center gap-1 bg-neutral-800 rounded-lg p-1">
                       <button
@@ -289,7 +289,7 @@ function MenuContent() {
                 <span>Submit Order ({cart.reduce((s, c) => s + c.quantity, 0)} Items)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span>${totalCartPrice.toFixed(2)}</span>
+                <span>Rs. {totalCartPrice.toLocaleString()}</span>
                 <ArrowRight className="w-6 h-6 stroke-[3]" />
               </div>
             </button>

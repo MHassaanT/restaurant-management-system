@@ -62,17 +62,17 @@ interface RestaurantState {
 }
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
-  { id: "m1", name: "Seekh Kabab Plate", price: 12.99, category: "BBQ", station: "BBQ" },
-  { id: "m2", name: "Chicken Tikka Boti", price: 14.50, category: "BBQ", station: "BBQ" },
-  { id: "m3", name: "Mutton Ribs BBQ", price: 18.99, category: "BBQ", station: "BBQ" },
-  { id: "m4", name: "Smash Cheeseburger", price: 9.99, category: "Fast Food", station: "Fast Food" },
-  { id: "m5", name: "Loaded Fries", price: 6.50, category: "Fast Food", station: "Fast Food" },
-  { id: "m6", name: "Crispy Chicken Wings", price: 8.99, category: "Fast Food", station: "Fast Food" },
-  { id: "m7", name: "Fresh Mango Lassi", price: 4.50, category: "Drinks", station: "Drinks" },
-  { id: "m8", name: "Mint Lemonade", price: 3.99, category: "Drinks", station: "Drinks" },
-  { id: "m9", name: "Karak Masala Chai", price: 2.99, category: "Drinks", station: "Drinks" },
-  { id: "m10", name: "Chicken Karahi Special", price: 16.99, category: "Desi", station: "Desi" },
-  { id: "m11", name: "Chicken Biryani", price: 11.99, category: "Desi", station: "Desi" },
+  { id: "m1", name: "Seekh Kabab Plate", price: 1250, category: "BBQ", station: "BBQ" },
+  { id: "m2", name: "Chicken Tikka Boti", price: 1450, category: "BBQ", station: "BBQ" },
+  { id: "m3", name: "Mutton Ribs BBQ", price: 2200, category: "BBQ", station: "BBQ" },
+  { id: "m4", name: "Smash Cheeseburger", price: 950, category: "Fast Food", station: "Fast Food" },
+  { id: "m5", name: "Loaded Fries", price: 650, category: "Fast Food", station: "Fast Food" },
+  { id: "m6", name: "Crispy Chicken Wings", price: 850, category: "Fast Food", station: "Fast Food" },
+  { id: "m7", name: "Fresh Mango Lassi", price: 450, category: "Drinks", station: "Drinks" },
+  { id: "m8", name: "Mint Lemonade", price: 350, category: "Drinks", station: "Drinks" },
+  { id: "m9", name: "Karak Masala Chai", price: 250, category: "Drinks", station: "Drinks" },
+  { id: "m10", name: "Chicken Karahi Special", price: 1850, category: "Desi", station: "Desi" },
+  { id: "m11", name: "Chicken Biryani", price: 750, category: "Desi", station: "Desi" },
 ];
 
 const INITIAL_TABLES: RestaurantTable[] = Array.from({ length: 6 }, (_, i) => {
