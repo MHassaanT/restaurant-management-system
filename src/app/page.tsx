@@ -1,80 +1,99 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRestaurantStore } from "@/store/useRestaurantStore";
-import { Play, Square, Utensils, ChefHat, LayoutDashboard } from "lucide-react";
+import { 
+  ChefHat, 
+  LayoutDashboard, 
+  QrCode, 
+  Sparkles, 
+  Utensils,
+  ArrowRight,
+  ShieldCheck
+} from "lucide-react";
 
 export default function Home() {
-  const { demoMode, setDemoMode, initializeDemoData } = useRestaurantStore();
-
-  const toggleSimulation = () => {
-    if (!demoMode) {
-      initializeDemoData();
-      setDemoMode(true);
-    } else {
-      setDemoMode(false);
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-8">
-      <div className="max-w-3xl w-full text-center space-y-12">
+    <main className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-6 sm:p-12">
+      <div className="max-w-4xl w-full text-center space-y-12">
+        {/* Brand Banner */}
         <div className="space-y-4">
-          <h1 className="text-6xl font-bold tracking-tighter text-amber-500">NAAR</h1>
-          <p className="text-xl text-neutral-400">Fine Dining Restaurant Management</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link href="/kds" className="group">
-            <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl hover:border-amber-500 hover:bg-neutral-800 transition-all duration-300 flex flex-col items-center gap-4">
-              <ChefHat className="w-12 h-12 text-amber-500 group-hover:scale-110 transition-transform" />
-              <h2 className="text-xl font-semibold">Kitchen Display</h2>
-              <p className="text-sm text-neutral-500 text-center">Tablet view for back of house</p>
-            </div>
-          </Link>
-          
-          <Link href="/waiter" className="group">
-            <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl hover:border-amber-500 hover:bg-neutral-800 transition-all duration-300 flex flex-col items-center gap-4">
-              <Utensils className="w-12 h-12 text-amber-500 group-hover:scale-110 transition-transform" />
-              <h2 className="text-xl font-semibold">Waiter Entry</h2>
-              <p className="text-sm text-neutral-500 text-center">Mobile order entry system</p>
-            </div>
-          </Link>
-
-          <Link href="/manager" className="group">
-            <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl hover:border-amber-500 hover:bg-neutral-800 transition-all duration-300 flex flex-col items-center gap-4">
-              <LayoutDashboard className="w-12 h-12 text-amber-500 group-hover:scale-110 transition-transform" />
-              <h2 className="text-xl font-semibold">Manager Dashboard</h2>
-              <p className="text-sm text-neutral-500 text-center">Live oversight & metrics</p>
-            </div>
-          </Link>
-        </div>
-
-        <div className="pt-12 border-t border-neutral-800">
-          <button
-            onClick={toggleSimulation}
-            className={`px-8 py-4 rounded-full text-lg font-bold flex items-center justify-center gap-3 mx-auto transition-all ${
-              demoMode 
-                ? "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]" 
-                : "bg-amber-500 hover:bg-amber-600 text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]"
-            }`}
-          >
-            {demoMode ? (
-              <>
-                <Square className="w-5 h-5 fill-current" />
-                Stop Demo Simulation
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5 fill-current" />
-                Start Demo Mode
-              </>
-            )}
-          </button>
-          <p className="mt-4 text-sm text-neutral-500">
-            {demoMode ? "Simulation active: firing fake orders every 15s" : "Click to pre-load sample data and simulate live orders"}
+          <div className="inline-flex items-center gap-2 bg-amber-950/80 border-2 border-amber-500 text-amber-400 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+            <Sparkles className="w-4 h-4" /> Real-Time Order Routing System
+          </div>
+          <h1 className="text-6xl sm:text-7xl font-black tracking-tight text-white">
+            NAAR <span className="text-amber-500">MANAGEMENT</span>
+          </h1>
+          <p className="text-xl text-neutral-400 font-medium max-w-xl mx-auto">
+            High-fidelity prototype for tablet staff displays, real-time kitchen routing, and customer QR menus.
           </p>
+        </div>
+
+        {/* Core Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          
+          {/* Management & Setup */}
+          <Link href="/management" className="group">
+            <div className="h-full bg-neutral-900 border-4 border-neutral-800 p-8 rounded-3xl group-hover:border-amber-500 group-hover:bg-neutral-800/80 transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xl">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl border-2 border-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <LayoutDashboard className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-white">Management Map</h2>
+                <p className="text-sm text-neutral-400 leading-relaxed font-medium">
+                  Live table map with real-time status color updates, table creation, and QR code token generation.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm group-hover:translate-x-1 transition-transform">
+                <span>Launch Management</span>
+                <ArrowRight className="w-5 h-5 stroke-[3]" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Kitchen Display System */}
+          <Link href="/kds" className="group">
+            <div className="h-full bg-neutral-900 border-4 border-neutral-800 p-8 rounded-3xl group-hover:border-amber-500 group-hover:bg-neutral-800/80 transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xl">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl border-2 border-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ChefHat className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-white">Kitchen Display</h2>
+                <p className="text-sm text-neutral-400 leading-relaxed font-medium">
+                  Tablet landscape KDS view with station filters (BBQ, Fast Food, Drinks), real-time ticket popups, and bold modifier warnings.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm group-hover:translate-x-1 transition-transform">
+                <span>Launch KDS Tablet</span>
+                <ArrowRight className="w-5 h-5 stroke-[3]" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Customer QR Menu */}
+          <Link href="/menu?table=token_table_1" className="group">
+            <div className="h-full bg-neutral-900 border-4 border-neutral-800 p-8 rounded-3xl group-hover:border-amber-500 group-hover:bg-neutral-800/80 transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xl">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl border-2 border-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <QrCode className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-white">Customer QR Menu</h2>
+                <p className="text-sm text-neutral-400 leading-relaxed font-medium">
+                  Mobile optimized menu ordering experience with active table session locks, item modifiers, and instant cart submission.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm group-hover:translate-x-1 transition-transform">
+                <span>Demo QR Menu</span>
+                <ArrowRight className="w-5 h-5 stroke-[3]" />
+              </div>
+            </div>
+          </Link>
+
+        </div>
+
+        {/* Footer info */}
+        <div className="pt-8 border-t-2 border-neutral-900 flex items-center justify-center gap-3 text-xs text-neutral-500 font-bold uppercase tracking-wider">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Next.js App Router • Tailwind CSS • Supabase Realtime</span>
         </div>
       </div>
     </main>

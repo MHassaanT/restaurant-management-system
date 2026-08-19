@@ -1,204 +1,403 @@
 import { create } from "zustand";
+import { supabase, isSupabaseConfigured, fallbackRealtimeBus } from "@/lib/supabase";
 
-export type OrderStatus = "preparing" | "ready" | "delivered";
-export type TableStatus = "available" | "occupied" | "waiting" | "ready" | "clearing";
+export type TableStatus = "Available" | "Occupied" | "Waiting for Food" | "Clearing";
+export type StationType = "BBQ" | "Fast Food" | "Drinks" | "Desi";
+export type OrderStatus = "Pending" | "Preparing" | "Ready" | "Delivered";
+export type ItemStatus = "Preparing" | "Ready";
+
+export interface RestaurantTable {
+  id: string;
+  table_number: number;
+  status: TableStatus;
+  qr_token: string;
+  created_at?: string;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  station: StationType;
+}
 
 export interface OrderItem {
   id: string;
-  name: string;
-  quantity: number;
+  order_id: string;
+  menu_item_id: string;
+  item_name: string;
+  modifiers: string;
+  station: StationType;
+  status: ItemStatus;
 }
 
 export interface Order {
   id: string;
-  tableId: number;
-  items: OrderItem[];
+  table_id: string;
+  table_number?: number;
   status: OrderStatus;
-  specialRequest?: string;
-  timestamp: number;
-  elapsedTime: number; // in seconds
-}
-
-export interface Table {
-  id: number;
-  number: number;
-  status: TableStatus;
-  currentOrderId?: string;
-  occupancyTime: number; // in seconds
+  total_amount: number;
+  created_at: string;
+  items?: OrderItem[];
 }
 
 interface RestaurantState {
+  tables: RestaurantTable[];
+  menuItems: MenuItem[];
   orders: Order[];
-  tables: Table[];
-  demoMode: boolean;
-  addOrder: (order: Omit<Order, "id" | "timestamp" | "elapsedTime">) => void;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  updateTableStatus: (tableId: number, status: TableStatus) => void;
-  setDemoMode: (active: boolean) => void;
-  simulateOrder: () => void;
-  initializeDemoData: () => void;
-  tickTime: () => void;
+  orderItems: OrderItem[];
+  isLoading: boolean;
+
+  // Actions
+  fetchInitialData: () => Promise<void>;
+  createTable: (tableNumber: number) => Promise<RestaurantTable>;
+  submitOrder: (
+    tableId: string,
+    cart: { item: MenuItem; quantity: number; modifier: string }[]
+  ) => Promise<string | null>;
+  updateOrderItemStatus: (orderItemId: string, newStatus: ItemStatus) => Promise<void>;
+  updateTableStatus: (tableId: string, status: TableStatus) => Promise<void>;
+  initRealtimeSubscriptions: () => () => void;
 }
 
-const MENU_ITEMS = ["Biryani", "Karahi", "Seekh", "Samosa", "Chai", "Lassi"];
+const DEFAULT_MENU_ITEMS: MenuItem[] = [
+  { id: "m1", name: "Seekh Kabab Plate", price: 12.99, category: "BBQ", station: "BBQ" },
+  { id: "m2", name: "Chicken Tikka Boti", price: 14.50, category: "BBQ", station: "BBQ" },
+  { id: "m3", name: "Mutton Ribs BBQ", price: 18.99, category: "BBQ", station: "BBQ" },
+  { id: "m4", name: "Smash Cheeseburger", price: 9.99, category: "Fast Food", station: "Fast Food" },
+  { id: "m5", name: "Loaded Fries", price: 6.50, category: "Fast Food", station: "Fast Food" },
+  { id: "m6", name: "Crispy Chicken Wings", price: 8.99, category: "Fast Food", station: "Fast Food" },
+  { id: "m7", name: "Fresh Mango Lassi", price: 4.50, category: "Drinks", station: "Drinks" },
+  { id: "m8", name: "Mint Lemonade", price: 3.99, category: "Drinks", station: "Drinks" },
+  { id: "m9", name: "Karak Masala Chai", price: 2.99, category: "Drinks", station: "Drinks" },
+  { id: "m10", name: "Chicken Karahi Special", price: 16.99, category: "Desi", station: "Desi" },
+  { id: "m11", name: "Chicken Biryani", price: 11.99, category: "Desi", station: "Desi" },
+];
+
+const INITIAL_TABLES: RestaurantTable[] = Array.from({ length: 6 }, (_, i) => {
+  const num = i + 1;
+  return {
+    id: `tbl-${num}`,
+    table_number: num,
+    status: num === 2 ? "Occupied" : num === 4 ? "Waiting for Food" : "Available",
+    qr_token: `token_table_${num}`,
+  };
+});
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
+  tables: INITIAL_TABLES,
+  menuItems: DEFAULT_MENU_ITEMS,
   orders: [],
-  tables: Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    number: i + 1,
-    status: "available",
-    occupancyTime: 0,
-  })),
-  demoMode: false,
+  orderItems: [],
+  isLoading: false,
 
-  addOrder: (orderData) => {
-    const newOrder: Order = {
-      ...orderData,
-      id: Math.random().toString(36).substring(7),
-      timestamp: Date.now(),
-      elapsedTime: 0,
+  fetchInitialData: async () => {
+    set({ isLoading: true });
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const [tablesRes, menuRes, ordersRes, orderItemsRes] = await Promise.all([
+          supabase.from("tables").select("*").order("table_number", { ascending: true }),
+          supabase.from("menu_items").select("*"),
+          supabase.from("orders").select("*").order("created_at", { ascending: false }),
+          supabase.from("order_items").select("*"),
+        ]);
+
+        if (tablesRes.data && tablesRes.data.length > 0) {
+          set({ tables: tablesRes.data as RestaurantTable[] });
+        }
+        if (menuRes.data && menuRes.data.length > 0) {
+          set({ menuItems: menuRes.data as MenuItem[] });
+        }
+        if (ordersRes.data) {
+          set({ orders: ordersRes.data as Order[] });
+        }
+        if (orderItemsRes.data) {
+          set({ orderItems: orderItemsRes.data as OrderItem[] });
+        }
+      } catch (err) {
+        console.error("Error fetching Supabase initial data:", err);
+      }
+    }
+    set({ isLoading: false });
+  },
+
+  createTable: async (tableNumber: number) => {
+    const qr_token = `qr_tbl_${tableNumber}_${Math.random().toString(36).substring(2, 9)}`;
+    const newTable: RestaurantTable = {
+      id: isSupabaseConfigured ? undefined as any : `tbl-${tableNumber}-${Date.now()}`,
+      table_number: tableNumber,
+      status: "Available",
+      qr_token,
     };
-    
-    set((state) => ({
-      orders: [...state.orders, newOrder],
-      tables: state.tables.map((t) =>
-        t.id === orderData.tableId
-          ? { ...t, status: "waiting", currentOrderId: newOrder.id }
-          : t
-      ),
-    }));
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("tables")
+        .insert({ table_number: tableNumber, status: "Available", qr_token })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      const inserted = data as RestaurantTable;
+      set((state) => ({ tables: [...state.tables.filter(t => t.table_number !== tableNumber), inserted] }));
+      return inserted;
+    } else {
+      newTable.id = `tbl-${tableNumber}`;
+      set((state) => {
+        const filtered = state.tables.filter((t) => t.table_number !== tableNumber);
+        return { tables: [...filtered, newTable] };
+      });
+      fallbackRealtimeBus.emit("tables_update", { action: "INSERT", table: newTable });
+      return newTable;
+    }
   },
 
-  updateOrderStatus: (orderId, status) => {
-    set((state) => {
-      const updatedOrders = state.orders.map((o) =>
-        o.id === orderId ? { ...o, status } : o
-      );
-      
-      const order = state.orders.find((o) => o.id === orderId);
-      if (!order) return { orders: updatedOrders };
+  submitOrder: async (tableId, cart) => {
+    const table = get().tables.find((t) => t.id === tableId || t.qr_token === tableId);
+    if (!table) return null;
 
-      let tableStatus: TableStatus = "waiting";
-      if (status === "ready") tableStatus = "ready";
-      if (status === "delivered") tableStatus = "occupied";
-
-      return {
-        orders: updatedOrders,
-        tables: state.tables.map((t) =>
-          t.id === order.tableId ? { ...t, status: tableStatus } : t
-        ),
-      };
+    let totalAmount = 0;
+    cart.forEach((c) => {
+      totalAmount += c.item.price * c.quantity;
     });
-  },
 
-  updateTableStatus: (tableId, status) => {
-    set((state) => ({
-      tables: state.tables.map((t) =>
-        t.id === tableId ? { ...t, status } : t
-      ),
-    }));
-  },
+    const orderId = isSupabaseConfigured ? undefined as any : `ord-${Date.now()}`;
+    const nowIso = new Date().toISOString();
 
-  setDemoMode: (active) => set({ demoMode: active }),
+    if (isSupabaseConfigured && supabase) {
+      // 1. Create order
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          table_id: table.id,
+          status: "Pending",
+          total_amount: totalAmount,
+        })
+        .select()
+        .single();
 
-  simulateOrder: () => {
-    const state = get();
-    const availableTables = state.tables.filter((t) => t.status === "available");
-    if (availableTables.length === 0) return;
-    
-    const randomTable = availableTables[Math.floor(Math.random() * availableTables.length)];
-    const randomItem = MENU_ITEMS[Math.floor(Math.random() * MENU_ITEMS.length)];
-    
-    get().addOrder({
-      tableId: randomTable.id,
-      items: [{ id: "1", name: randomItem, quantity: 1 }],
-      status: "preparing",
-    });
-  },
+      if (orderError || !orderData) {
+        console.error("Order creation failed:", orderError);
+        return null;
+      }
 
-  initializeDemoData: () => {
-    const now = Date.now();
-    const demoOrders: Order[] = [
-      {
-        id: "demo-1",
-        tableId: 5,
-        items: [{ id: "i1", name: "Biryani", quantity: 2 }],
-        status: "preparing",
-        timestamp: now - 600000, // 10 mins ago (delayed)
-        elapsedTime: 600,
-      },
-      {
-        id: "demo-2",
-        tableId: 2,
-        items: [{ id: "i2", name: "Karahi", quantity: 1 }],
-        status: "ready",
-        specialRequest: "Extra spicy please",
-        timestamp: now - 120000,
-        elapsedTime: 120,
-      },
-      {
-        id: "demo-3",
-        tableId: 8,
-        items: [{ id: "i3", name: "Seekh", quantity: 3 }, { id: "i4", name: "Chai", quantity: 3 }],
-        status: "preparing",
-        timestamp: now - 60000,
-        elapsedTime: 60,
-      },
-      {
-        id: "demo-4",
-        tableId: 1,
-        items: [{ id: "i5", name: "Samosa", quantity: 5 }],
-        status: "preparing",
-        timestamp: now - 30000,
-        elapsedTime: 30,
-      },
-      {
-        id: "demo-5",
-        tableId: 12,
-        items: [{ id: "i6", name: "Lassi", quantity: 2 }],
-        status: "preparing",
-        timestamp: now - 15000,
-        elapsedTime: 15,
-      },
-      {
-        id: "demo-6",
-        tableId: 15,
-        items: [{ id: "i7", name: "Biryani", quantity: 1 }],
-        status: "preparing",
-        timestamp: now - 5000,
-        elapsedTime: 5,
-      },
-    ];
+      const createdOrder = orderData as Order;
 
-    set((state) => {
-      const newTables = [...state.tables];
-      demoOrders.forEach(o => {
-        const t = newTables.find(t => t.id === o.tableId);
-        if (t) {
-          t.status = o.status === "ready" ? "ready" : "waiting";
-          t.currentOrderId = o.id;
-          t.occupancyTime = o.elapsedTime + 600; // random occupancy
+      // 2. Create order_items
+      const itemRows: Omit<OrderItem, "id">[] = [];
+      cart.forEach((c) => {
+        for (let i = 0; i < c.quantity; i++) {
+          itemRows.push({
+            order_id: createdOrder.id,
+            menu_item_id: c.item.id,
+            item_name: c.item.name,
+            modifiers: c.modifier || "",
+            station: c.item.station,
+            status: "Preparing",
+          });
         }
       });
-      // Set some tables as just occupied
-      newTables[0].status = "occupied";
-      newTables[3].status = "clearing";
 
-      return { orders: demoOrders, tables: newTables, demoMode: true };
-    });
+      const { data: insertedItems } = await supabase
+        .from("order_items")
+        .insert(itemRows)
+        .select();
+
+      // 3. Update table status to Occupied
+      await supabase
+        .from("tables")
+        .update({ status: "Occupied" })
+        .eq("id", table.id);
+
+      // Local state sync
+      set((state) => ({
+        orders: [createdOrder, ...state.orders],
+        orderItems: [...state.orderItems, ...(insertedItems as OrderItem[] || [])],
+        tables: state.tables.map((t) => (t.id === table.id ? { ...t, status: "Occupied" } : t)),
+      }));
+
+      return createdOrder.id;
+    } else {
+      // Offline / Fallback mode
+      const createdOrder: Order = {
+        id: orderId,
+        table_id: table.id,
+        table_number: table.table_number,
+        status: "Pending",
+        total_amount: totalAmount,
+        created_at: nowIso,
+      };
+
+      const newOrderItems: OrderItem[] = [];
+      cart.forEach((c, idx) => {
+        for (let i = 0; i < c.quantity; i++) {
+          newOrderItems.push({
+            id: `item-${Date.now()}-${idx}-${i}`,
+            order_id: orderId,
+            menu_item_id: c.item.id,
+            item_name: c.item.name,
+            modifiers: c.modifier || "",
+            station: c.item.station,
+            status: "Preparing",
+          });
+        }
+      });
+
+      set((state) => ({
+        orders: [createdOrder, ...state.orders],
+        orderItems: [...state.orderItems, ...newOrderItems],
+        tables: state.tables.map((t) => (t.id === table.id ? { ...t, status: "Occupied" } : t)),
+      }));
+
+      fallbackRealtimeBus.emit("new_order", { order: createdOrder, items: newOrderItems, tableId: table.id });
+      return orderId;
+    }
   },
 
-  tickTime: () => {
+  updateOrderItemStatus: async (orderItemId, newStatus) => {
+    let targetOrder: Order | undefined;
+    let targetTableId: string | undefined;
+
+    // Perform optimistic local update first
+    set((state) => {
+      const updatedItems = state.orderItems.map((item) =>
+        item.id === orderItemId ? { ...item, status: newStatus } : item
+      );
+
+      const targetItem = state.orderItems.find((i) => i.id === orderItemId);
+      if (!targetItem) return { orderItems: updatedItems };
+
+      targetOrder = state.orders.find((o) => o.id === targetItem.order_id);
+      if (!targetOrder) return { orderItems: updatedItems };
+
+      // Check if all items in this order are Ready
+      const orderItemsForThisOrder = updatedItems.filter((i) => i.order_id === targetOrder!.id);
+      const allReady = orderItemsForThisOrder.every((i) => i.status === "Ready");
+
+      let updatedOrders = state.orders;
+      let updatedTables = state.tables;
+
+      if (allReady && targetOrder.status !== "Ready") {
+        updatedOrders = state.orders.map((o) =>
+          o.id === targetOrder!.id ? { ...o, status: "Ready" } : o
+        );
+        targetTableId = targetOrder.table_id;
+        updatedTables = state.tables.map((t) =>
+          t.id === targetOrder!.table_id ? { ...t, status: "Waiting for Food" } : t
+        );
+      }
+
+      return {
+        orderItems: updatedItems,
+        orders: updatedOrders,
+        tables: updatedTables,
+      };
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      await supabase
+        .from("order_items")
+        .update({ status: newStatus })
+        .eq("id", orderItemId);
+
+      if (targetOrder) {
+        const state = get();
+        const currentOrder = state.orders.find((o) => o.id === targetOrder!.id);
+        if (currentOrder?.status === "Ready") {
+          await supabase.from("orders").update({ status: "Ready" }).eq("id", targetOrder.id);
+          if (targetTableId) {
+            await supabase.from("tables").update({ status: "Waiting for Food" }).eq("id", targetTableId);
+          }
+        }
+      }
+    } else {
+      fallbackRealtimeBus.emit("item_status_change", { orderItemId, newStatus, targetTableId });
+    }
+  },
+
+  updateTableStatus: async (tableId, status) => {
     set((state) => ({
-      orders: state.orders.map((o) => ({
-        ...o,
-        elapsedTime: o.status !== "delivered" ? Math.floor((Date.now() - o.timestamp) / 1000) : o.elapsedTime,
-      })),
-      tables: state.tables.map((t) => ({
-        ...t,
-        occupancyTime: t.status !== "available" ? t.occupancyTime + 1 : 0,
-      }))
+      tables: state.tables.map((t) => (t.id === tableId ? { ...t, status } : t)),
     }));
-  }
+
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("tables").update({ status }).eq("id", tableId);
+    } else {
+      fallbackRealtimeBus.emit("tables_update", { tableId, status });
+    }
+  },
+
+  initRealtimeSubscriptions: () => {
+    if (isSupabaseConfigured && supabase) {
+      const channel = supabase
+        .channel("restaurant-realtime")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "tables" },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              set((s) => ({ tables: [...s.tables.filter((t) => t.id !== payload.new.id), payload.new as RestaurantTable] }));
+            } else if (payload.eventType === "UPDATE") {
+              set((s) => ({
+                tables: s.tables.map((t) => (t.id === payload.new.id ? (payload.new as RestaurantTable) : t)),
+              }));
+            }
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              set((s) => ({ orders: [payload.new as Order, ...s.orders] }));
+            } else if (payload.eventType === "UPDATE") {
+              set((s) => ({
+                orders: s.orders.map((o) => (o.id === payload.new.id ? (payload.new as Order) : o)),
+              }));
+            }
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "order_items" },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              set((s) => ({ orderItems: [...s.orderItems, payload.new as OrderItem] }));
+            } else if (payload.eventType === "UPDATE") {
+              set((s) => ({
+                orderItems: s.orderItems.map((i) => (i.id === payload.new.id ? (payload.new as OrderItem) : i)),
+              }));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        if (supabase) {
+          supabase.removeChannel(channel);
+        }
+      };
+    } else {
+      // Fallback Bus Listener for single-tab or cross-component sync
+      const unsubNewOrder = fallbackRealtimeBus.on("new_order", () => {
+        // Force refresh from store state
+        set((s) => ({ ...s }));
+      });
+      const unsubItemStatus = fallbackRealtimeBus.on("item_status_change", () => {
+        set((s) => ({ ...s }));
+      });
+      const unsubTables = fallbackRealtimeBus.on("tables_update", () => {
+        set((s) => ({ ...s }));
+      });
+
+      return () => {
+        unsubNewOrder();
+        unsubItemStatus();
+        unsubTables();
+      };
+    }
+  },
 }));
