@@ -49,10 +49,7 @@ CREATE POLICY "Allow public access to orders" ON public.orders FOR ALL USING (tr
 CREATE POLICY "Allow public access to order_items" ON public.order_items FOR ALL USING (true) WITH CHECK (true);
 
 -- 3. Enable Supabase Realtime Subscriptions for all tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tables;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.menu_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.order_items;
+ALTER PUBLICATION supabase_realtime SET TABLE public.tables, public.menu_items, public.orders, public.order_items;
 
 -- 4. Seed Initial Sample Menu Data
 INSERT INTO public.menu_items (name, price, category, station) VALUES
